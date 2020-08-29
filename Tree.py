@@ -8,211 +8,196 @@ Date of modification:   11.04.2020
 
 
 
-# Imports
-from enum import Enum
+# ==================================== Node ====================================
 
-
-
-
-# Enum for Node positions
-class Position(Enum):
-    NONE =      0
-    LEFT =      1
-    RIGHT =     2
-    
-    
-
-# Node class
 class Node:
-    """
-    Node used to build a tree.
-    """
-
-    # Constructor
+    """Node used to build a tree."""
+    
     def __init__(self, value):
+        """Constructor"""
+        
         self.left = None
         self.right = None
         self.value = value
-        self.count = 1
 
-    # Add a new node to self
-    def add(self, node):
-        if node.value < self.value:
-            if self.left == None:   self.left = node
-            else:                   self.left.add(node)
-        elif not(node.value <= self.value):
-            if self.right == None:  self.right = node
-            else:                   self.right.add(node)
-        else:
-            self.count += 1
+    def add(self, value):
+        """Add a node. Smaller ones left, larger ones right and the same ones increase the counter."""
+        
+        if value == self.value:
+            return False
+        elif value < self.value:
+            if self.left == None:
+                self.left = Node(value)
+                return True
+            else:
+                return self.left.add(value)
+        elif value > self.value:
+            if self.right == None:
+                self.right = Node(value)
+                return True
+            else:
+                return self.right.add(value)
+    
+    def remove(self, parent, isLeftChild, value):
+        """Remove a node."""
+        
+        if value == self.value:
+            if self.left == None and self.right == None:
+                # No children. Make parent remove self.
+                if isLeftChild: parent.left = None
+                else:           parent.right = None
             
-    # Remove value
-    def remove(self, parent, isLeftChild, value, allOfThem = False):
-        if self.value == value:
-            if allOfThem or self.count <= 1:
-                if self.left == None and self.right == None:
-                    if isLeftChild: parent.left = None
-                    else:           parent.right = None
-                
-                elif self.left == None and self.right != None:
-                    if isLeftChild: parent.left = self.right
-                    else:           parent.right = self.right
-                
-                elif self.right == None and self.left != None:
-                    if isLeftChild: parent.left = self.left
-                    else:           parent.right = self.left
-                
-                elif self.left != None and self.right != None:
-                    cutie = self.right._findSmallestNode()
-                    self.right.remove(self, False, cutie.value, allOfThem)
-                    cutie.left = self.left
-                    cutie.right = self.right
-                    if isLeftChild: parent.left = cutie
-                    else:           parent.right = cutie
+            elif self.left == None and self.right != None:
+                # Got right child. Make parent append right child.
+                if isLeftChild: parent.left = self.right
+                else:           parent.right = self.right
+            
+            elif self.right == None and self.left != None:
+                # Got left child. Make parent append left child.
+                if isLeftChild:
+                    parent.left = self.left
+                else:
+                    parent.right = self.left
+            
+            elif self.left != None and self.right != None and parent != None:
+                # Got left and right child.
+                child = self.right._findSmallestNode()
+                self.right.remove(self, False, child.value)
+                child.left = self.left
+                child.right = self.right
+                if isLeftChild:
+                    parent.left = child
+                else:
+                    parent.right = child
             
             else:
-                self.count -= 1
+                # Got left and right child and node is root.
+                child = self.right._findSmallestNode()
+                self.right.remove(self, False, child.value)
+                self.value = child.value
             
             return True
             
         else:
+            # Not the value to remove. Go deeper.
             if value < self.value and self.left != None:
-                return self.left.remove(self, True, value, allOfThem)
-            elif not(value <= self.value) and self.right != None:
-                return self.right.remove(self, False, value, allOfThem)
+                return self.left.remove(self, True, value)
+            elif value > self.value and self.right != None:
+                return self.right.remove(self, False, value)
             else:
                 return False
         
-    
-    # Find smallest node
     def _findSmallestNode(self):
+        """Finds the smallest value."""
+        
         return self if self.left == None else self.left._findSmallestNode()
     
-    # Find value
     def find(self, value):
-        if value < self.value and self.left != None:            return self.left.find(value)
-        elif not(value <= self.value) and self.right != None:   return self.right.find(value)
-        elif value == self.value:                               return True
-        else:                                                   return False
+        """Finds a value."""
+        
+        if value == self.value:
+            return True
+        elif value < self.value and self.left != None:
+            return self.left.find(value)
+        elif value > self.value and self.right != None:
+            return self.right.find(value)
+        else:
+            return False
 
-    # Print the tree recursively
-    def show(self, position, flat = False, depth = 0):
+    def show(self, nodetype_string, flat = False, depth = 0):
+        """Print the tree recursively."""
+        
         # LEFT
-        if self.left != None:   self.left.show(Position.LEFT, flat, depth+1)
+        if self.left != None:
+            self.left.show("/", flat, depth+1)
 
         # SELF
-        if flat == False:
-            for i in range(0, depth):           print("\t", end='')
-            if position == Position.NONE:       print("o", end=' ')
-            elif position == Position.LEFT:     print("/", end=' ')
-            elif position == Position.RIGHT:    print("\\", end=' ')
-            else:                               print("ERROR: Position of Node is neither LEFT, RIGHT or NONE!!!")
-        
         if not flat:
-            print(self.value, end='')
-            print("|"+str(self.count), end=' ')
+            for i in range(0, depth):
+                print("\t", end='')
+            print(nodetype_string, end=' ')
+            print(self.value, end=' ')
+            if self.left != None and self.right != None:
+                print("<")
+            elif self.left != None:
+                print("/")
+            elif self.right != None:
+                print("\\")
+            else:
+                print()
         else:
-            for i in range(0, self.count):
-                print(self.value, end='')
-                print(" ", end='')
-            
-        if not flat:
-            if self.left != None and self.right != None:    print("<")
-            elif self.left != None:                         print("/")
-            elif self.right != None:                        print("\\")
-            else:                                           print()
+            print(self.value, end=' ')
 
         # RIGHT
-        if self.right != None:  self.right.show(Position.RIGHT, flat, depth+1)
+        if self.right != None:
+            self.right.show("\\", flat, depth+1)
 
 
         
 
-# Tree class
+
+# ==================================== Tree ====================================
+
 class Tree:
-    """
-    Handles the root Node and manages the operations of the Nodes.
-    """
+    """Handles the root Node and manages the operations of the Nodes."""
     
     def __init__(self):
+        """Constructor"""
+        
         self.root = None
     
-    # Add a list of values
-    def addAll(self, values):
-        if isinstance(values, list):
-            for value in values:    self.add(value)
-        else:
-            print("ERROR: The addAll function requires a list.")
-    
-    # Add a value
     def add(self, value):
-        if self.root == None:       self.root = Node(value)
-        else:                       self.root.add(Node(value))
-    
-    # Remove a list of values
-    def removeAll(self, values):
-        returnValue = True
-        if isinstance(values, list):
-            for value in values:    returnValue &= self.remove(value)
+        """Add a value to the tree."""
+        
+        if self.root == None:
+            self.root = Node(value)
+            return True
         else:
-            print("ERROR: The removeAll function requires a list.")
+            return self.root.add(value)
+    
+    def remove(self, value):
+        """Remove a value from the tree."""
+        
+        return self.root.remove(None, True, value) if self.root is not None else False
+        
+    def find(self, value):
+        """Find a value in the tree."""
+        
+        return self.root.find(value) if self.root is not None else False
+            
+    def show(self, flat = False):
+        """Print the tree."""
+        
+        if self.root == None:
+            return False
+        
+        if flat == True:    print("Flat:", end=' ')
+        self.root.show("o", flat)
+        if flat == True:    print()
+        return True
+    
+    def addAll(self, values):
+        """Add a list of values to the tree."""
+        
+        if not isinstance(values, list):
+            raise TypeError("The addAll function requires a list.")
+        
+        returnValue = True
+        for value in values:
+            returnValue &= self.add(value)
         return returnValue
     
-    # Remove a value
-    def remove(self, value, allOfThem = False):
-        if self.root == None:
-            print("Tree empty.")
-            return False
-        else:
-            if self.root.value == value:
-                if allOfThem or self.root.count <= 1:
-                    if self.root.left == None and self.root.right == None:
-                        self.root = None
-                    
-                    elif self.root.left == None and self.root.right != None:
-                        self.root = self.root.right
-                    
-                    elif self.root.right == None and self.root.left != None:
-                        self.root = self.root.left
-                    
-                    elif self.root.left != None and self.root.right != None:
-                        cutie = self.root.right._findSmallestNode()
-                        self.root.right.remove(self.root, False, cutie.value, allOfThem)
-                        cutie.left = self.root.left
-                        cutie.right = self.root.right
-                        self.root = cutie
-                
-                else:
-                    self.root.count -= 1
-                
-                return True
-                
-            else:
-                if value < self.root.value and self.root.left != None:
-                    return self.root.left.remove(self.root, True, value, allOfThem)
-                elif not(value <= self.root.value) and self.root.right != None:
-                    return self.root.right.remove(self.root, False, value, allOfThem)
-                else:
-                    return False
-                
-                
+    
+    def removeAll(self, values):
+        """Remove a list of values from the tree."""
         
-    # Find a value
-    def find(self, value):
-        if self.root == None:
-            print("Tree empty.")
-            return False
-        else:
-            return self.root.find(value)
-            
-    # Print the tree
-    def show(self, flat = False):
-        if self.root == None:
-            print("Tree empty.")
-        else:
-            if flat == True:    print("Flat:", end=' ')
-            self.root.show(Position.NONE, flat)
-            if flat == True:    print()
+        if not isinstance(values, list):
+            raise TypeError("The removeAll function requires a list.")
+        
+        returnValue = True
+        for value in values:
+            returnValue &= self.remove(value)
+        return returnValue
 
 
 
@@ -223,16 +208,15 @@ class Tree:
             
             
 def main():
-    """
-    A quick and dirty test if the basic functionality is given.
-    """
+    """A quick and dirty test if the basic functionality is given."""
     
-    print("Tree is executed as MAIN. Testing functionality.")
+    print("Tree is executed as main. Testing functionality.")
     
     # Create a tree in a garden dictionary and test stuff
     tree = Tree()
     tree.add(5)
-    tree.addAll([10,2,4,7,1,8,3,3,3,3,9,2,0,12])
+    tree.addAll([10,2,4,7,8,1,8,3,3,3,3,9,2,0,12,20,18,27,6,-2,-5])
+    tree.show()
     if tree.find(-1):               print("ERROR: Tree contains -1.")
     else:                           print("PASS: Tree does NOT contain -1.")
     if tree.find(1):                print("PASS: Tree contains 1.")
@@ -247,13 +231,16 @@ def main():
     else:                           print("PASS: Tree does NOT contain 10.")
     if tree.remove(5):              print("PASS: Removed 5")
     else:                           print("ERROR: Did NOT remove 5.")
-    if tree.remove(3,True):         print("PASS: Removed all 3.")
-    else:                           print("ERROR: Could not remove all 3.")
+    if tree.remove(3):              print("PASS: Removed 3.")
+    else:                           print("ERROR: Could not remove 3.")
     if tree.removeAll([12,2,4]):    print("PASS: Removed 12, 2 and 4.")
     else:                           print("ERROR: Could not remove 12, 2 and 4.")
     if not tree.remove(3):          print("PASS: Could not remove 3.")
     else:                           print("ERROR: Could remove 3.")
-    tree.add(5)
+    if tree.remove(7):              print("PASS: Removed root.")
+    else:                           print("ERROR: Could not remove root.")
+    if not tree.add(9):             print("PASS: Tree could NOT add 9.")
+    else:                           print("ERROR: Tree could add 9.")
     print();
     tree.show()
     print()
