@@ -1,8 +1,10 @@
 """
-Quick and Dirty Binary Tree
+A Python Binary Tree
+
+Tree does not store values added twice.
 
 Author:                 Felix Mark.
-Date of modification:   11.04.2020
+Date of modification:   29.08.2020
 """
 
 
